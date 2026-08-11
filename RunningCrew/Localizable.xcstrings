@@ -116,19 +116,34 @@
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "연결" } }
       }
     },
-    "Connect to app management to control status and stops from here." : {
+    "Manage" : {
       "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 연결하면 상태와 정지를 여기서 제어할 수 있어요." } }
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "관리하기" } }
       }
     },
-    "Connect to App" : {
+    "Manage This Runner" : {
       "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 연결" } }
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 러너 관리하기" } }
       }
     },
-    "Connect to app management?" : {
+    "Manage this runner with the app?" : {
       "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 연결할까요?" } }
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 러너를 앱에서 관리할까요?" } }
+      }
+    },
+    "Manage this runner with the app to control status and stops from here." : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 러너 관리하기를 누르면 상태와 정지를 여기서 제어할 수 있어요." } }
+      }
+    },
+    "Manage this runner with the app to control it from here." : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 러너 관리하기를 누르면 여기서 실행을 제어할 수 있어요." } }
+      }
+    },
+    "Manage this runner with the app for live logs and control from here." : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 러너 관리하기를 누르면 실시간 로그와 정지를 여기서 제어할 수 있어요." } }
       }
     },
     "Connect to GitHub" : {
@@ -524,31 +539,6 @@
     "Stops after current job" : {
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "작업이 끝나면 정지해요" } }
-      }
-    },
-    "Switch" : {
-      "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "전환" } }
-      }
-    },
-    "Switch to App" : {
-      "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 전환" } }
-      }
-    },
-    "Switch to app management for live logs and control from here." : {
-      "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 전환하면 실시간 로그와 정지를 여기서 제어할 수 있어요." } }
-      }
-    },
-    "Switch to app management to control it from here." : {
-      "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 전환하면 여기서 실행을 제어할 수 있어요." } }
-      }
-    },
-    "Switch to app management?" : {
-      "localizations" : {
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "앱 관리로 전환할까요?" } }
       }
     },
     "Synced %@ ago" : {

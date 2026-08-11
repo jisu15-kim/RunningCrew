@@ -44,20 +44,20 @@ extension ManagedRunner {
             return StatusPresentation(
                 color: Theme.warning,
                 title: String(localized: "Running outside the app"),
-                detail: String(localized: "Connect to app management to control status and stops from here.")
+                detail: String(localized: "Manage this runner with the app to control status and stops from here.")
             )
         case .service(let pid):
             if pid == nil {
                 return StatusPresentation(
                     color: .secondary,
                     title: String(localized: "Registered as system service · Stopped"),
-                    detail: String(localized: "Switch to app management to control it from here.")
+                    detail: String(localized: "Manage this runner with the app to control it from here.")
                 )
             }
             return StatusPresentation(
                 color: Theme.warning,
                 title: String(localized: "Running as system service"),
-                detail: String(localized: "Switch to app management for live logs and control from here.")
+                detail: String(localized: "Manage this runner with the app for live logs and control from here.")
             )
         case .stopped:
             return StatusPresentation(color: .secondary, title: String(localized: "Stopped"))

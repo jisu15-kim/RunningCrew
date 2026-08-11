@@ -15,6 +15,7 @@ struct RunnerCardView: View {
     @State private var showStopOptions = false
     @State private var showMigrateConfirm = false
     @State private var showAdoptConfirm = false
+    @State private var showRemoveConfirm = false
 
     private var presentation: StatusPresentation { runner.statusPresentation }
 
@@ -58,6 +59,30 @@ struct RunnerCardView: View {
             }
         }
         .card()
+        .contextMenu {
+            Button("Logs") {
+                onOpenDetail()
+            }
+            Button("Show in Finder") {
+                NSWorkspace.shared.open(runner.directory)
+            }
+            Divider()
+            Button("Remove…", role: .destructive) {
+                showRemoveConfirm = true
+            }
+        }
+        .confirmationDialog(
+            "Remove this runner?",
+            isPresented: $showRemoveConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Move Folder to Trash and Remove", role: .destructive) {
+                Task { await model.removeRunner(runner) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The runner folder is moved to the Trash, so you can restore it. A running runner is stopped first. The GitHub registration remains, but it's cleaned up automatically after 14 days offline.")
+        }
         .confirmationDialog(
             "Stop this runner?",
             isPresented: $showStopOptions,
@@ -73,16 +98,16 @@ struct RunnerCardView: View {
         } message: {
             Text("Stopping now cancels the job in progress.")
         }
-        .alert("Switch to app management?", isPresented: $showMigrateConfirm) {
-            Button("Switch") {
+        .alert("Manage this runner with the app?", isPresented: $showMigrateConfirm) {
+            Button("Manage") {
                 model.migrateFromService(runner)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the system service registration (launchd) and lets the app manage the runner directly. A job in progress may be canceled.")
         }
-        .alert("Connect to app management?", isPresented: $showAdoptConfirm) {
-            Button("Connect") {
+        .alert("Manage this runner with the app?", isPresented: $showAdoptConfirm) {
+            Button("Manage") {
                 model.adoptOrphan(runner)
             }
             Button("Cancel", role: .cancel) {}
@@ -132,14 +157,14 @@ struct RunnerCardView: View {
             }
 
         case .adopt:
-            Button("Connect to App") {
+            Button("Manage This Runner") {
                 showAdoptConfirm = true
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.accent)
 
         case .migrate:
-            Button("Switch to App") {
+            Button("Manage This Runner") {
                 showMigrateConfirm = true
             }
             .buttonStyle(.borderedProminent)
