@@ -326,6 +326,26 @@
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "종료" } }
       }
     },
+    "Remove this runner?" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "러너를 제거할까요?" } }
+      }
+    },
+    "Remove…" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "제거…" } }
+      }
+    },
+    "Move Folder to Trash and Remove" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "폴더를 휴지통으로 보내고 제거" } }
+      }
+    },
+    "The runner folder is moved to the Trash, so you can restore it. A running runner is stopped first. The GitHub registration remains, but it's cleaned up automatically after 14 days offline." : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "러너 폴더는 휴지통으로 이동해서 복원할 수 있어요. 실행 중이면 먼저 정지돼요. GitHub 등록은 남지만 14일간 연결이 없으면 자동으로 정리돼요." } }
+      }
+    },
     "Refresh" : {
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "새로고침" } }

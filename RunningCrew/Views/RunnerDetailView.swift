@@ -9,7 +9,11 @@ import SwiftUI
 
 struct RunnerDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppModel.self) private var model
     @Bindable var runner: ManagedRunner
+
+    @State private var showRemoveConfirm = false
+    @State private var isRemoving = false
 
     private var presentation: StatusPresentation { runner.statusPresentation }
 
@@ -145,11 +149,34 @@ struct RunnerDetailView: View {
             Button("Open _diag Folder") {
                 NSWorkspace.shared.open(runner.directory.appending(path: "_diag"))
             }
+            Button("Remove…", role: .destructive) {
+                showRemoveConfirm = true
+            }
+            .disabled(isRemoving)
             Spacer()
+            if isRemoving {
+                ProgressView().controlSize(.small)
+            }
             Button("Close") {
                 dismiss()
             }
             .keyboardShortcut(.defaultAction)
+        }
+        .confirmationDialog(
+            "Remove this runner?",
+            isPresented: $showRemoveConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Move Folder to Trash and Remove", role: .destructive) {
+                isRemoving = true
+                Task {
+                    await model.removeRunner(runner)
+                    dismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The runner folder is moved to the Trash, so you can restore it. A running runner is stopped first. The GitHub registration remains, but it's cleaned up automatically after 14 days offline.")
         }
     }
 }

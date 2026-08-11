@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import Darwin
 
 @Observable
 final class AppModel {
@@ -102,8 +103,25 @@ final class AppModel {
         return true
     }
 
-    func removeRunner(_ runner: ManagedRunner) {
-        guard !runner.local.isAppManaged else { return }
+    /// 러너 제거: 실행 중이면 먼저 정지하고, 폴더를 휴지통으로 보낸 뒤 목록에서 삭제한다.
+    /// (휴지통이라 복원 가능. GitHub 등록은 14일간 연결이 없으면 자동 정리된다.)
+    func removeRunner(_ runner: ManagedRunner) async {
+        // 실행 중인 채 폴더만 옮기면 휴지통 속에서 프로세스가 계속 돈다 — 먼저 정지
+        if runner.local.isAppManaged {
+            stopNow(runner)
+            for _ in 0..<30 {
+                if runner.local == .stopped { break }
+                try? await Task.sleep(for: .seconds(1))
+            }
+        } else if runner.local.isAlive {
+            let pids = await RunnerDiscovery.processIDs(inTree: runner.directory)
+            for pid in pids { kill(pid, SIGINT) }
+            try? await Task.sleep(for: .seconds(2))
+        }
+
+        runner.logTail?.stop()
+        runner.logTail = nil
+        try? FileManager.default.trashItem(at: runner.directory, resultingItemURL: nil)
         runners.removeAll { $0.id == runner.id }
         registeredPaths = runners.map { $0.directory.path }
     }
