@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 # RunningCrew 릴리스 파이프라인 (Mding scripts/release.sh 패턴)
-#   빌드 → Developer ID 서명 → DMG → 공증(notarization) → 스테이플
+#   빌드 → Developer ID 서명 → DMG → 공증 → 스테이플 → appcast 갱신 → GitHub Release → Homebrew tap
 #
 # 사용법:
-#   ./scripts/release.sh          # Developer ID 서명 + 공증 (배포용)
-#   ./scripts/release.sh --adhoc  # ad-hoc 서명 DMG (개인용/테스트, 공증 없음)
+#   ./scripts/release.sh          # 전체 릴리스 (서명 + 공증 + 배포)
+#   ./scripts/release.sh --adhoc  # ad-hoc 서명 DMG 만 생성 (개인용/테스트, 배포 단계 없음)
 #
-# 선행 조건 (배포용, 최초 1회):
+# 선행 조건 (최초 1회):
 #   1. Xcode 에 Developer ID Application 인증서 발급
 #   2. 공증 자격증명을 키체인 프로필로 저장:
 #        xcrun notarytool store-credentials runningcrew-notary \
 #          --apple-id <애플개발자계정이메일> --team-id 846TMZL7WC
-#      (암호는 https://account.apple.com ▸ 로그인 및 보안 ▸ 앱 암호 에서 생성한 앱 암호)
+#   3. gh auth login (GitHub Release 생성용)
 #
-# 버전 올리기: Xcode 타겟 설정의 MARKETING_VERSION (pbxproj) 수정 후 실행
+# 릴리스 절차:
+#   1. pbxproj 의 MARKETING_VERSION (예: 1.1.0) 과
+#      CURRENT_PROJECT_VERSION (정수, 릴리스마다 +1 — Sparkle 버전 비교 기준) 을 올리고 커밋
+#   2. ./scripts/release.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -21,18 +24,48 @@ cd "$REPO_ROOT"
 
 APP_NAME="RunningCrew"
 SCHEME="RunningCrew"
+REPO="jisu15-kim/RunningCrew"
 SIGN_IDENTITY="Developer ID Application: Jisu Kim (846TMZL7WC)"
 NOTARY_PROFILE="${NOTARY_PROFILE:-runningcrew-notary}"
+SPARKLE_BIN="$REPO_ROOT/.tools/sparkle/bin"
 RELEASE_DIR="$REPO_ROOT/.release"
 
 ADHOC=0
 [[ "${1:-}" == "--adhoc" ]] && ADHOC=1
 
-VERSION=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/p' "$APP_NAME.xcodeproj/project.pbxproj" | head -1)
-[[ -n "$VERSION" ]] || { echo "✗ pbxproj 에서 MARKETING_VERSION 을 읽지 못했습니다"; exit 1; }
+PBXPROJ="$APP_NAME.xcodeproj/project.pbxproj"
+VERSION=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/p' "$PBXPROJ" | head -1)
+BUILD_NUM=$(sed -n 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);.*/\1/p' "$PBXPROJ" | head -1)
+[[ -n "$VERSION" && -n "$BUILD_NUM" ]] || { echo "✗ pbxproj 에서 버전을 읽지 못했습니다"; exit 1; }
+
+TAG="v$VERSION"
 DMG="$RELEASE_DIR/$APP_NAME-$VERSION.dmg"
 
-echo "▸ $APP_NAME $VERSION 릴리스 시작$([[ $ADHOC == 1 ]] && echo ' (ad-hoc)')"
+echo "▸ $APP_NAME $VERSION (build $BUILD_NUM) 릴리스 시작$([[ $ADHOC == 1 ]] && echo ' (ad-hoc)')"
+
+# 0) 사전 점검 (배포 모드만) -----------------------------------------------------
+if [[ $ADHOC == 0 ]]; then
+    [[ -z "$(git status --porcelain)" ]] \
+        || { echo "✗ 작업 트리가 clean 하지 않습니다. 커밋 후 다시 실행하세요."; exit 1; }
+    git rev-parse -q --verify "refs/tags/$TAG" >/dev/null \
+        && { echo "✗ 태그 $TAG 가 이미 존재합니다. MARKETING_VERSION 을 올리세요."; exit 1; }
+    if [[ -f appcast.xml ]] && grep -q "<sparkle:version>$BUILD_NUM</sparkle:version>" appcast.xml; then
+        echo "✗ build $BUILD_NUM 이 이미 appcast 에 있습니다. CURRENT_PROJECT_VERSION 을 올리세요."
+        exit 1
+    fi
+    xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 \
+        || { echo "✗ 공증 프로필 '$NOTARY_PROFILE' 없음 — 파일 상단의 store-credentials 명령을 먼저 실행하세요."; exit 1; }
+
+    # Sparkle CLI 도구(appcast 생성·서명) — 없으면 최신 릴리스에서 다운로드
+    if [[ ! -x "$SPARKLE_BIN/generate_appcast" ]]; then
+        echo "▸ Sparkle CLI 도구 다운로드"
+        SPARKLE_TAG=$(curl -sL https://api.github.com/repos/sparkle-project/Sparkle/releases/latest \
+            | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -1)
+        mkdir -p "$REPO_ROOT/.tools/sparkle"
+        curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_TAG/Sparkle-$SPARKLE_TAG.tar.xz" \
+            | tar -xJ -C "$REPO_ROOT/.tools/sparkle" bin
+    fi
+fi
 
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
@@ -92,24 +125,83 @@ create-dmg \
     --app-drop-link 495 190 \
     "$DMG" "$STAGE"
 
-# 4) DMG 서명 + 공증 -----------------------------------------------------------
 if [[ $ADHOC == 1 ]]; then
     echo "⚠️  ad-hoc DMG — 서명·공증이 없어 다른 머신에서는 Gatekeeper 경고가 떠요 (개인용)"
-else
-    # DMG 컨테이너도 서명해야 spctl(Gatekeeper) 평가를 통과한다.
-    codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
-    if xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-        echo "▸ 공증 제출 (Apple 서버 대기, 수 분 소요)"
-        xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
-        xcrun stapler staple "$DMG"
-        xcrun stapler validate "$DMG"
-        spctl -a -t open --context context:primary-signature "$DMG"
-        echo "✓ 공증·스테이플 완료"
-    else
-        echo "⚠️  공증 프로필 '$NOTARY_PROFILE' 없음 — 공증을 건너뜁니다."
-        echo "   배포하려면 파일 상단 주석의 store-credentials 명령으로 프로필을 만든 뒤 다시 실행하세요."
-    fi
+    echo ""
+    echo "✓ 완료: $DMG"
+    exit 0
 fi
 
+# 4) DMG 서명 + 공증 -----------------------------------------------------------
+# DMG 컨테이너도 서명해야 spctl(Gatekeeper) 평가를 통과한다.
+codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
+echo "▸ 공증 제출 (Apple 서버 대기, 수 분 소요)"
+xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+xcrun stapler staple "$DMG"
+xcrun stapler validate "$DMG"
+spctl -a -t open --context context:primary-signature "$DMG"
+echo "✓ 공증·스테이플 완료"
+
+# 5) appcast 갱신 (Sparkle 자동 업데이트 피드) ---------------------------------
+echo "▸ appcast.xml 갱신"
+UPDATES="$RELEASE_DIR/updates"
+mkdir -p "$UPDATES"
+cp "$DMG" "$UPDATES/"
+"$SPARKLE_BIN/generate_appcast" \
+    --download-url-prefix "https://github.com/$REPO/releases/download/$TAG/" \
+    -o "$REPO_ROOT/appcast.xml" \
+    "$UPDATES"
+
+# 6) appcast 커밋·푸시 → GitHub Release 게시 -----------------------------------
+# 반드시 push 가 먼저다 — gh release create 는 태그를 "원격 main 의 현재 HEAD" 에
+# 만들므로, push 전에 실행하면 태그가 한 릴리스 이전 커밋에 붙는다.
+echo "▸ GitHub Release 게시"
+git add appcast.xml
+git commit -m "release: $TAG"
+git push origin main
+gh release create "$TAG" "$DMG" --title "$APP_NAME $VERSION" --generate-notes --target "$(git rev-parse HEAD)"
+
+# 7) Homebrew tap cask 갱신 ----------------------------------------------------
+echo "▸ Homebrew tap cask 갱신"
+TAP_REPO="jisu15-kim/homebrew-tap"
+SHA256=$(shasum -a 256 "$DMG" | awk '{print $1}')
+CASK_FILE="$RELEASE_DIR/runningcrew.rb"
+cat >"$CASK_FILE" <<EOF
+cask "runningcrew" do
+  version "$VERSION"
+  sha256 "$SHA256"
+
+  url "https://github.com/$REPO/releases/download/v#{version}/$APP_NAME-#{version}.dmg"
+  name "RunningCrew"
+  desc "Menu bar app for managing GitHub self-hosted runners"
+  homepage "https://github.com/$REPO"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  auto_updates true
+  depends_on macos: :tahoe
+
+  app "RunningCrew.app"
+
+  zap trash: [
+    "~/Library/Caches/com.jisukim.running-crew.RunningCrew",
+    "~/Library/HTTPStorages/com.jisukim.running-crew.RunningCrew",
+    "~/Library/Logs/RunningCrew",
+    "~/Library/Preferences/com.jisukim.running-crew.RunningCrew.plist",
+    "~/Library/Saved Application State/com.jisukim.running-crew.RunningCrew.savedState",
+  ]
+end
+EOF
+EXISTING_SHA=$(gh api "repos/$TAP_REPO/contents/Casks/runningcrew.rb" --jq .sha 2>/dev/null || true)
+gh api -X PUT "repos/$TAP_REPO/contents/Casks/runningcrew.rb" \
+    -f message="runningcrew $VERSION" \
+    -f content="$(base64 -i "$CASK_FILE")" \
+    ${EXISTING_SHA:+-f sha="$EXISTING_SHA"} >/dev/null
+echo "✓ tap 갱신: https://github.com/$TAP_REPO"
+
 echo ""
-echo "✓ 완료: $DMG"
+echo "✓ $APP_NAME $VERSION 릴리스 완료"
+echo "  https://github.com/$REPO/releases/tag/$TAG"

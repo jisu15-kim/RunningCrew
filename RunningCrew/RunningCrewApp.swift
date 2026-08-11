@@ -7,9 +7,21 @@
 
 import SwiftUI
 import AppKit
+import Sparkle
+
+/// Sparkle 자동 업데이트 컨트롤러 (앱 수명 동안 단일 인스턴스)
+@MainActor
+enum Updater {
+    static let controller = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
+}
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        _ = Updater.controller // 런치 시 자동 업데이트 체크 시작
         Task {
             await AppModel.shared.bootstrap()
         }
@@ -27,13 +39,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let busy = model.appManagedBusyCount
         let alert = NSAlert()
-        alert.messageText = "실행 중인 러너가 \(running)개 있어요"
+        alert.messageText = String(localized: "\(running) runners are still running")
         alert.informativeText = busy > 0
-            ? "지금 \(busy)개 러너가 작업을 실행하고 있어요. 정지하면 실행 중인 작업이 취소돼요. 실행 상태로 두면 러너는 계속 돌고, 다음에 앱을 열 때 다시 연결할 수 있어요."
-            : "정지하고 종료할까요? 실행 상태로 두면 러너는 계속 돌고, 다음에 앱을 열 때 다시 연결할 수 있어요."
-        alert.addButton(withTitle: "정지 후 종료")
-        alert.addButton(withTitle: "실행 상태로 두고 종료")
-        alert.addButton(withTitle: "취소")
+            ? String(localized: "\(busy) runners are running jobs right now. Stopping cancels those jobs. If you keep them running, they continue in the background and you can reconnect next time you open the app.")
+            : String(localized: "Stop the runners and quit? If you keep them running, they continue in the background and you can reconnect next time you open the app.")
+        alert.addButton(withTitle: String(localized: "Stop and Quit"))
+        alert.addButton(withTitle: String(localized: "Keep Running and Quit"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
@@ -63,6 +75,15 @@ struct RunningCrewApp: App {
         }
         .defaultSize(width: 720, height: 640)
         .defaultLaunchBehavior(.suppressed) // 메뉴바 상주 앱: 시작 시 창을 열지 않는다
+        .commands {
+            // ⌘Q 는 앱 종료가 아니라 창 닫기로 동작한다. 실제 종료는 메뉴바 패널의 Quit 으로.
+            CommandGroup(replacing: .appTermination) {
+                Button("Close Window") {
+                    NSApp.keyWindow?.performClose(nil)
+                }
+                .keyboardShortcut("q", modifiers: .command)
+            }
+        }
 
         MenuBarExtra {
             MenuBarPanel()

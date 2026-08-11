@@ -2,13 +2,13 @@
 //  Theme.swift
 //  RunningCrew
 //
-//  Toss Tech Design 스타일 디자인 토큰: 인지 속도와 신뢰를 우선한다.
+//  디자인 토큰.
 //
 
 import SwiftUI
 
 enum Theme {
-    /// Toss Blue (#3182F6) — 진행/작업 중 강조
+    /// 브랜드 블루 (#3182F6) — 진행/작업 중 강조
     static let accent = Color(red: 0.192, green: 0.510, blue: 0.965)
     /// 대기(정상) 상태 (#00C471)
     static let running = Color(red: 0.0, green: 0.769, blue: 0.443)
@@ -39,7 +39,7 @@ private struct CardBackground: ViewModifier {
 }
 
 extension View {
-    /// Toss 스타일 카드 컨테이너
+    /// 카드 컨테이너
     func card() -> some View {
         modifier(CardBackground())
     }

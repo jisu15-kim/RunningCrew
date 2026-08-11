@@ -32,7 +32,7 @@ extension AppModel {
             if let external = listeners.first(where: { $0.directory == runner.directory }) {
                 let hasService = RunnerDiscovery.launchAgentServices()[runner.directory] != nil
                 runner.local = hasService ? .service(pid: external.pid) : .orphan(pid: external.pid)
-                runner.log.append("이미 다른 곳에서 실행 중이에요 (PID \(external.pid)).")
+                runner.log.append(String(localized: "Already running elsewhere (PID \(Int(external.pid)))."))
                 return
             }
             self.spawn(runner)
@@ -42,12 +42,12 @@ extension AppModel {
     private func spawn(_ runner: ManagedRunner) {
         let runScript = runner.directory.appending(path: "run.sh")
         guard FileManager.default.fileExists(atPath: runScript.path) else {
-            runner.local = .failed("run.sh 를 찾을 수 없어요")
-            runner.log.append("run.sh 를 찾을 수 없어요: \(runScript.path)")
+            runner.local = .failed(String(localized: "Couldn't find run.sh"))
+            runner.log.append(String(localized: "Couldn't find run.sh at \(runScript.path)"))
             return
         }
         guard let logHandle = prepareLogFile(for: runner) else {
-            runner.local = .failed("로그 파일을 만들 수 없어요")
+            runner.local = .failed(String(localized: "Couldn't create the log file"))
             return
         }
 
@@ -76,11 +76,11 @@ extension AppModel {
             runner.process = process
             runner.lastStartDate = Date()
             runner.local = .running(pid: process.processIdentifier)
-            runner.log.append("러너를 시작했어요.")
+            runner.log.append(String(localized: "Runner started."))
             startLogTail(runner)
         } catch {
             runner.local = .failed(error.localizedDescription)
-            runner.log.append("시작 실패: \(error.localizedDescription)")
+            runner.log.append(String(localized: "Failed to start: \(error.localizedDescription)"))
         }
     }
 
@@ -108,14 +108,14 @@ extension AppModel {
     func stopAfterJob(_ runner: ManagedRunner) {
         guard case .running(let pid) = runner.local else { return }
         runner.local = .stopPending(pid: pid)
-        runner.log.append("현재 작업이 끝나면 정지할게요.")
+        runner.log.append(String(localized: "Will stop after the current job finishes."))
     }
 
     /// 정지 예약을 취소하고 계속 실행한다.
     func cancelScheduledStop(_ runner: ManagedRunner) {
         guard case .stopPending(let pid) = runner.local else { return }
         runner.local = .running(pid: pid)
-        runner.log.append("정지 예약을 취소했어요.")
+        runner.log.append(String(localized: "Scheduled stop canceled."))
     }
 
     /// 즉시 정지한다. 러너 트리 전체에 SIGINT 를 보내 GitHub 에 정상 해제를 알린다.
@@ -130,7 +130,7 @@ extension AppModel {
         // 여전히 현재 프로세스일 때만 실행한다 (그 사이 정상 종료 후 재시작됐을 수 있다).
         let target = runner.process
         runner.local = .stopping
-        runner.log.append("러너를 정지하는 중…")
+        runner.log.append(String(localized: "Stopping the runner…"))
         Task {
             let pids = await RunnerDiscovery.processIDs(inTree: runner.directory)
             if pids.isEmpty {
@@ -142,7 +142,7 @@ extension AppModel {
             // 20초 안에 안 내려가면 강제 종료로 승격
             try? await Task.sleep(for: .seconds(20))
             guard let target, runner.process === target, target.isRunning else { return }
-            runner.log.append("정지가 지연되어 강제 종료합니다.")
+            runner.log.append(String(localized: "Stop is taking too long; forcing termination."))
             let remaining = await RunnerDiscovery.processIDs(inTree: runner.directory)
             for pid in remaining { kill(pid, SIGTERM) }
             try? await Task.sleep(for: .seconds(3))
@@ -170,18 +170,18 @@ extension AppModel {
         switch runner.local {
         case .stopping, .stopPending:
             runner.local = .stopped
-            runner.log.append("러너가 정지되었어요.")
+            runner.log.append(String(localized: "Runner stopped."))
             if runner.pendingRestart {
                 runner.pendingRestart = false
                 start(runner)
             }
 
         default:
-            runner.log.append("러너가 예기치 않게 종료되었어요 (코드 \(status)).")
+            runner.log.append(String(localized: "Runner exited unexpectedly (code \(Int(status)))."))
             if runner.autoRestart, runner.consecutiveFailures < 3 {
                 runner.consecutiveFailures += 1
                 runner.local = .stopped
-                runner.log.append("5초 후 자동으로 다시 시작할게요. (\(runner.consecutiveFailures)/3)")
+                runner.log.append(String(localized: "Restarting automatically in 5 seconds. (\(runner.consecutiveFailures)/3)"))
                 Task {
                     try? await Task.sleep(for: .seconds(5))
                     if case .stopped = runner.local {
@@ -189,7 +189,7 @@ extension AppModel {
                     }
                 }
             } else {
-                runner.local = .failed("예기치 않게 종료됨 (코드 \(status))")
+                runner.local = .failed(String(localized: "Exited unexpectedly (code \(Int(status)))"))
             }
         }
     }
@@ -200,7 +200,7 @@ extension AppModel {
     func adoptOrphan(_ runner: ManagedRunner) {
         guard case .orphan = runner.local else { return }
         runner.local = .stopping
-        runner.log.append("기존 프로세스를 정리하고 앱 관리로 전환하는 중…")
+        runner.log.append(String(localized: "Cleaning up the existing process and switching to app management…"))
         Task {
             var pids = await RunnerDiscovery.processIDs(inTree: runner.directory)
             for pid in pids { kill(pid, SIGINT) }
@@ -224,15 +224,15 @@ extension AppModel {
     func migrateFromService(_ runner: ManagedRunner) {
         guard case .service = runner.local else { return }
         runner.local = .stopping
-        runner.log.append("시스템 서비스를 해제하는 중… (svc.sh uninstall)")
+        runner.log.append(String(localized: "Removing the system service… (svc.sh uninstall)"))
         Task {
             let result = await Shell.run("/bin/bash", ["./svc.sh", "uninstall"], currentDirectory: runner.directory)
             guard result.status == 0 else {
-                runner.local = .failed("서비스 해제 실패")
-                runner.log.append("서비스 해제에 실패했어요: \(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))")
+                runner.local = .failed(String(localized: "Failed to remove the service"))
+                runner.log.append(String(localized: "Couldn't remove the service: \(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))"))
                 return
             }
-            runner.log.append("서비스가 해제되었어요. 앱이 직접 실행을 맡을게요.")
+            runner.log.append(String(localized: "Service removed. The app now manages this runner."))
             try? await Task.sleep(for: .seconds(2))
             runner.local = .stopped
             self.start(runner)

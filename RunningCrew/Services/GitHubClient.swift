@@ -13,10 +13,10 @@ struct GitHubClient {
 
         var errorDescription: String? {
             switch self {
-            case .http(401): return "토큰이 유효하지 않아요"
-            case .http(403): return "권한이 부족하거나 요청 한도를 초과했어요"
-            case .http(404): return "저장소에 접근할 수 없어요 (admin 권한 필요)"
-            case .http(let code): return "GitHub 요청 실패 (HTTP \(code))"
+            case .http(401): return String(localized: "The token is invalid")
+            case .http(403): return String(localized: "Insufficient permissions or rate limit exceeded")
+            case .http(404): return String(localized: "Can't access the repository (admin permission required)")
+            case .http(let code): return String(localized: "GitHub request failed (HTTP \(code))")
             }
         }
     }

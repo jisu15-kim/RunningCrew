@@ -5,6 +5,7 @@
 
 import SwiftUI
 import ServiceManagement
+import Sparkle
 
 struct SettingsView: View {
     var body: some View {
@@ -15,7 +16,7 @@ struct SettingsView: View {
                 }
             GeneralSettingsView()
                 .tabItem {
-                    Label("일반", systemImage: "gearshape")
+                    Label("General", systemImage: "gearshape")
                 }
         }
         .frame(width: 480)
@@ -33,15 +34,15 @@ private struct GitHubSettingsView: View {
             statusCard
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("토큰 직접 입력")
+                Text("Enter Token Manually")
                     .font(.system(size: 13, weight: .semibold))
-                Text("Fine-grained PAT 은 저장소의 Administration: Read 권한이 필요해요. 토큰은 Keychain 에 안전하게 보관돼요.")
+                Text("A fine-grained PAT needs the repository's Administration: Read permission. The token is stored securely in Keychain.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 HStack {
-                    SecureField("github_pat_… 또는 ghp_…", text: $manualToken)
+                    SecureField("github_pat_… or ghp_…", text: $manualToken)
                         .textFieldStyle(.roundedBorder)
-                    Button("연결") {
+                    Button("Connect") {
                         let token = manualToken
                         manualToken = ""
                         Task { await model.setToken(token) }
@@ -63,25 +64,25 @@ private struct GitHubSettingsView: View {
                     .font(.system(size: 20))
                     .foregroundStyle(Theme.running)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(login) 으로 연결됨")
+                    Text("Connected as \(login)")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("러너 상태를 20초마다 동기화해요.")
+                    Text("Runner status syncs every 20 seconds.")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                     if model.tokenPersistenceFailed {
-                        Text("Keychain 저장에 실패해서 이번 실행 동안만 연결이 유지돼요. 앱을 다시 시작하면 다시 연결해주세요.")
+                        Text("Couldn't save to Keychain, so the connection lasts only for this session. Reconnect after relaunching the app.")
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.warning)
                     }
                 }
                 Spacer()
-                Button("연결 해제") {
+                Button("Disconnect") {
                     model.disconnectGitHub()
                 }
 
             case .validating:
                 ProgressView().controlSize(.small)
-                Text("토큰을 확인하는 중…")
+                Text("Verifying token…")
                     .font(.system(size: 13))
                 Spacer()
 
@@ -90,20 +91,20 @@ private struct GitHubSettingsView: View {
                     .font(.system(size: 20))
                     .foregroundStyle(Theme.accent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("GitHub 미연결")
+                    Text("Not connected to GitHub")
                         .font(.system(size: 14, weight: .semibold))
                     if case .invalid(let message) = model.tokenState {
                         Text(message)
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.danger)
                     } else {
-                        Text("gh CLI 에 로그인되어 있다면 버튼 한 번으로 연결돼요.")
+                        Text("If you're signed in to the gh CLI, one click connects you.")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
                 }
                 Spacer()
-                Button("gh CLI 에서 가져오기") {
+                Button("Import from gh CLI") {
                     Task { await model.importTokenFromGHCLI() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -123,7 +124,7 @@ private struct GeneralSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.spacing) {
             VStack(alignment: .leading, spacing: 8) {
-                Toggle("로그인할 때 RunningCrew 자동 실행", isOn: $launchAtLogin)
+                Toggle("Launch RunningCrew at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
                         do {
                             if newValue {
@@ -137,13 +138,25 @@ private struct GeneralSettingsView: View {
                             launchAtLogin = SMAppService.mainApp.status == .enabled
                         }
                     }
-                Text("러너를 앱이 직접 관리하므로, 로그인 시 앱이 자동 실행되어야 러너도 함께 관리돼요.")
+                Text("The app manages runners directly, so it needs to launch at login for your runners to be managed.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 if let loginItemError {
                     Text(loginItemError)
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.danger)
+                }
+            }
+            .card()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Updates")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Updates are checked automatically. You can also check right now.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Button("Check for Updates…") {
+                    Updater.controller.checkForUpdates(nil)
                 }
             }
             .card()

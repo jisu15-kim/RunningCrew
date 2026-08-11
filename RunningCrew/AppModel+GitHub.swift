@@ -36,7 +36,7 @@ extension AppModel {
     func importTokenFromGHCLI() async {
         tokenState = .validating
         guard let token = await TokenStore.importFromGHCLI() else {
-            tokenState = .invalid("gh CLI 에서 토큰을 가져오지 못했어요. 터미널에서 gh auth status 를 확인해주세요.")
+            tokenState = .invalid(String(localized: "Couldn't get a token from the gh CLI. Check gh auth status in Terminal."))
             return
         }
         await setToken(token)
@@ -131,7 +131,7 @@ extension AppModel {
 
         if gh.busy, let job = jobs.first(where: { $0.runnerName == runner.name }) {
             runner.activeJob = ActiveJob(
-                workflowName: job.workflowName ?? "워크플로우",
+                workflowName: job.workflowName ?? String(localized: "Workflow"),
                 jobName: job.name,
                 branch: job.headBranch,
                 startedAt: job.startedAt.flatMap { ISO8601DateFormatter().date(from: $0) },
@@ -139,7 +139,7 @@ extension AppModel {
             )
         } else if gh.busy {
             runner.activeJob = ActiveJob(
-                workflowName: "작업 실행 중",
+                workflowName: String(localized: "Running a job"),
                 jobName: "",
                 branch: nil,
                 startedAt: nil,
@@ -165,7 +165,7 @@ extension AppModel {
               let gh = fresh.first(where: { $0.name == runner.name }) else { return }
         guard case .stopPending = runner.local else { return }
         if !gh.busy {
-            runner.log.append("작업이 끝나서 예약된 정지를 실행할게요.")
+            runner.log.append(String(localized: "Job finished; running the scheduled stop."))
             stopNow(runner)
         }
     }

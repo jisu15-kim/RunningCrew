@@ -48,14 +48,14 @@ struct RunnerDetailView: View {
 
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            infoRow(label: "디렉토리") {
+            infoRow(label: String(localized: "Directory")) {
                 HStack(spacing: 6) {
                     Text(runner.directory.path)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    Button("Finder 에서 열기") {
+                    Button("Show in Finder") {
                         NSWorkspace.shared.open(runner.directory)
                     }
                     .controlSize(.small)
@@ -69,13 +69,13 @@ struct RunnerDetailView: View {
                 }
             }
             if !runner.labels.isEmpty {
-                infoRow(label: "라벨") {
+                infoRow(label: String(localized: "Labels")) {
                     Text(runner.labels.joined(separator: ", "))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
             }
-            infoRow(label: "자동 재시작") {
+            infoRow(label: String(localized: "Auto-restart")) {
                 Toggle("", isOn: $runner.autoRestart)
                     .labelsHidden()
                     .toggleStyle(.switch)
@@ -99,13 +99,13 @@ struct RunnerDetailView: View {
 
     private var logConsole: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("로그")
+            Text("Logs")
                 .font(.system(size: 12, weight: .semibold))
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         if runner.log.lines.isEmpty {
-                            Text("아직 로그가 없어요. 앱에서 러너를 시작하면 실시간 로그가 여기에 보여요.")
+                            Text("No logs yet. Start the runner from the app to stream logs here.")
                                 .font(.system(size: 12))
                                 .foregroundStyle(.tertiary)
                                 .padding(8)
@@ -139,14 +139,14 @@ struct RunnerDetailView: View {
 
     private var footer: some View {
         HStack {
-            Button("로그 지우기") {
+            Button("Clear Logs") {
                 runner.log.clear()
             }
-            Button("_diag 폴더 열기") {
+            Button("Open _diag Folder") {
                 NSWorkspace.shared.open(runner.directory.appending(path: "_diag"))
             }
             Spacer()
-            Button("닫기") {
+            Button("Close") {
                 dismiss()
             }
             .keyboardShortcut(.defaultAction)

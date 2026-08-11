@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Sparkle
 
 struct MenuBarPanel: View {
     @Environment(AppModel.self) private var model
@@ -14,7 +15,7 @@ struct MenuBarPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if model.runners.isEmpty {
-                Text("발견된 러너가 없어요")
+                Text("No runners found")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .padding(12)
@@ -30,12 +31,15 @@ struct MenuBarPanel: View {
             Divider()
 
             HStack {
-                Button("대시보드 열기") {
+                Button("Open Dashboard") {
                     openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                 }
                 Spacer()
-                Button("종료") {
+                Button("Check for Updates…") {
+                    Updater.controller.checkForUpdates(nil)
+                }
+                Button("Quit") {
                     NSApp.terminate(nil)
                 }
             }
@@ -44,7 +48,7 @@ struct MenuBarPanel: View {
             .foregroundStyle(.secondary)
             .padding(12)
         }
-        .frame(width: 300)
+        .frame(width: 320)
     }
 
     private func runnerRow(_ runner: ManagedRunner) -> some View {
@@ -78,7 +82,7 @@ struct MenuBarPanel: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .help("시작")
+            .help("Start")
 
         case .stop:
             Button {
@@ -94,7 +98,7 @@ struct MenuBarPanel: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .help("정지")
+            .help("Stop")
 
         case .adopt, .migrate:
             Button {
@@ -105,7 +109,7 @@ struct MenuBarPanel: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .help("대시보드에서 관리")
+            .help("Manage in Dashboard")
 
         case .none:
             ProgressView()

@@ -50,24 +50,24 @@ struct MainView: View {
                     if model.isSyncing {
                         ProgressView().controlSize(.small)
                     } else {
-                        Label("새로고침", systemImage: "arrow.clockwise")
+                        Label("Refresh", systemImage: "arrow.clockwise")
                     }
                 }
-                .help("상태 새로고침")
+                .help("Refresh status")
             }
             ToolbarItem {
                 Button {
                     showFolderImporter = true
                 } label: {
-                    Label("러너 폴더 추가", systemImage: "plus")
+                    Label("Add Runner Folder", systemImage: "plus")
                 }
-                .help("러너 폴더 직접 추가")
+                .help("Add a runner folder")
             }
             ToolbarItem {
                 SettingsLink {
-                    Label("설정", systemImage: "gearshape")
+                    Label("Settings", systemImage: "gearshape")
                 }
-                .help("설정")
+                .help("Settings")
             }
         }
         .sheet(item: $selectedRunner) { runner in
@@ -79,15 +79,15 @@ struct MainView: View {
         ) { result in
             if case .success(let url) = result {
                 if !model.addRunnerIfNeeded(at: url) {
-                    addFolderError = "이 폴더에서 러너 설정(.runner)을 찾지 못했어요. self-hosted runner 가 설치된 폴더를 선택해주세요."
+                    addFolderError = String(localized: "Couldn't find a runner configuration (.runner) in this folder. Choose a folder where a self-hosted runner is installed.")
                 }
             }
         }
-        .alert("러너를 추가하지 못했어요", isPresented: .init(
+        .alert(String(localized: "Couldn't add the runner"), isPresented: .init(
             get: { addFolderError != nil },
             set: { if !$0 { addFolderError = nil } }
         )) {
-            Button("확인", role: .cancel) {}
+            Button("OK", role: .cancel) {}
         } message: {
             Text(addFolderError ?? "")
         }
@@ -102,7 +102,7 @@ struct MainView: View {
                     .font(.system(size: 22, weight: .bold))
                 Spacer()
                 if let lastSync = model.lastSync {
-                    Text("마지막 동기화 \(lastSync, style: .relative) 전")
+                    Text("Synced \(lastSync, style: .relative) ago")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }
@@ -114,20 +114,24 @@ struct MainView: View {
     }
 
     private var summaryTitle: String {
-        if model.runners.isEmpty { return "러너를 찾는 중이에요" }
-        if model.busyCount > 0 { return "러너 \(model.runners.count)개 · \(model.busyCount)개 작업 중" }
-        return "러너 \(model.runners.count)개"
+        if model.runners.isEmpty {
+            return String(localized: "Looking for runners")
+        }
+        if model.busyCount > 0 {
+            return String(localized: "\(model.runners.count) runners · \(model.busyCount) busy")
+        }
+        return String(localized: "\(model.runners.count) runners")
     }
 
     private var summarySubtitle: String {
         let alive = model.aliveCount
         if model.runners.isEmpty {
-            return "LaunchAgent 와 실행 중인 프로세스를 자동으로 찾아요."
+            return String(localized: "Automatically finds LaunchAgents and running processes.")
         }
         if alive == model.runners.count {
-            return "모든 러너가 실행 중이에요."
+            return String(localized: "All runners are running.")
         }
-        return "\(alive)개 실행 중 · \(model.runners.count - alive)개 정지됨"
+        return String(localized: "\(alive) running · \(model.runners.count - alive) stopped")
     }
 
     // MARK: - Token Banner
@@ -145,7 +149,7 @@ struct MainView: View {
                 .font(.system(size: 20))
                 .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("GitHub 연결이 필요해요")
+                Text("Connect to GitHub")
                     .font(.system(size: 14, weight: .semibold))
                 Text(tokenBannerMessage)
                     .font(.system(size: 12))
@@ -155,13 +159,13 @@ struct MainView: View {
             if case .validating = model.tokenState {
                 ProgressView().controlSize(.small)
             } else {
-                Button("gh CLI 에서 가져오기") {
+                Button("Import from gh CLI") {
                     Task { await model.importTokenFromGHCLI() }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Theme.accent)
                 SettingsLink {
-                    Text("직접 입력")
+                    Text("Enter Manually")
                 }
             }
         }
@@ -172,7 +176,7 @@ struct MainView: View {
         if case .invalid(let message) = model.tokenState {
             return message
         }
-        return "연결하면 러너의 online/busy 상태와 실행 중인 작업을 볼 수 있어요."
+        return String(localized: "Connect to see each runner's online/busy status and current jobs.")
     }
 
     // MARK: - Empty State
@@ -182,12 +186,12 @@ struct MainView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 28))
                 .foregroundStyle(.tertiary)
-            Text("러너를 찾지 못했어요")
+            Text("No runners found")
                 .font(.system(size: 15, weight: .semibold))
-            Text("self-hosted runner 가 설치된 폴더를 직접 추가할 수 있어요.")
+            Text("You can add a folder where a self-hosted runner is installed.")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-            Button("러너 폴더 추가") {
+            Button("Add Runner Folder") {
                 showFolderImporter = true
             }
             .buttonStyle(.borderedProminent)

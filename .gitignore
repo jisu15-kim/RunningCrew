@@ -4,4 +4,9 @@ xcuserdata/
 build/
 DerivedData/
 .release/
+.tools/
 .omc/
+.claude/
+.swiftpm/
+*.dmg
+*.log

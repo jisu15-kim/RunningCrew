@@ -39,7 +39,7 @@ struct RunnerCardView: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(presentation.color)
 
-                Button("로그") {
+                Button("Logs") {
                     onOpenDetail()
                 }
                 .controlSize(.regular)
@@ -59,33 +59,33 @@ struct RunnerCardView: View {
         }
         .card()
         .confirmationDialog(
-            "러너를 정지할까요?",
+            "Stop this runner?",
             isPresented: $showStopOptions,
             titleVisibility: .visible
         ) {
-            Button("작업이 끝나면 정지 (권장)") {
+            Button("Stop After Job (Recommended)") {
                 model.stopAfterJob(runner)
             }
-            Button("지금 정지", role: .destructive) {
+            Button("Stop Now", role: .destructive) {
                 model.stopNow(runner)
             }
-            Button("취소", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("지금 정지하면 실행 중인 작업이 취소돼요.")
+            Text("Stopping now cancels the job in progress.")
         }
-        .alert("앱 관리로 전환할까요?", isPresented: $showMigrateConfirm) {
-            Button("전환") {
+        .alert("Switch to app management?", isPresented: $showMigrateConfirm) {
+            Button("Switch") {
                 model.migrateFromService(runner)
             }
-            Button("취소", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("시스템 서비스(launchd) 등록을 해제하고 앱이 직접 실행을 맡아요. 실행 중인 작업이 있다면 취소될 수 있어요.")
+            Text("This removes the system service registration (launchd) and lets the app manage the runner directly. A job in progress may be canceled.")
         }
-        .alert("앱 관리로 연결할까요?", isPresented: $showAdoptConfirm) {
-            Button("연결") {
+        .alert("Connect to app management?", isPresented: $showAdoptConfirm) {
+            Button("Connect") {
                 model.adoptOrphan(runner)
             }
-            Button("취소", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text(adoptMessage)
         }
@@ -93,9 +93,9 @@ struct RunnerCardView: View {
 
     private var adoptMessage: String {
         if runner.remote.isBusy {
-            return "지금 이 러너가 작업을 실행하고 있어요. 연결 과정에서 러너를 재시작하므로 실행 중인 작업이 취소돼요."
+            return String(localized: "This runner is running a job right now. Connecting restarts the runner, which cancels the job in progress.")
         }
-        return "기존 프로세스를 정리하고 앱이 다시 시작해요. 잠깐 offline 상태가 될 수 있어요."
+        return String(localized: "The existing process is cleaned up and the app restarts the runner. It may go offline briefly.")
     }
 
     // MARK: - Action Button
@@ -104,7 +104,7 @@ struct RunnerCardView: View {
     private var actionButton: some View {
         switch runner.primaryAction {
         case .start:
-            Button("시작") {
+            Button("Start") {
                 model.start(runner)
             }
             .buttonStyle(.borderedProminent)
@@ -112,16 +112,16 @@ struct RunnerCardView: View {
 
         case .stop:
             if case .stopPending = runner.local {
-                Button("예약 취소") {
+                Button("Cancel Scheduled Stop") {
                     model.cancelScheduledStop(runner)
                 }
                 .buttonStyle(.bordered)
-                Button("지금 정지") {
+                Button("Stop Now") {
                     model.stopNow(runner)
                 }
                 .buttonStyle(.bordered)
             } else {
-                Button("정지") {
+                Button("Stop") {
                     if runner.remote.isBusy {
                         showStopOptions = true
                     } else {
@@ -132,14 +132,14 @@ struct RunnerCardView: View {
             }
 
         case .adopt:
-            Button("앱 관리로 연결") {
+            Button("Connect to App") {
                 showAdoptConfirm = true
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.accent)
 
         case .migrate:
-            Button("앱 관리로 전환") {
+            Button("Switch to App") {
                 showMigrateConfirm = true
             }
             .buttonStyle(.borderedProminent)
@@ -176,7 +176,7 @@ struct RunnerCardView: View {
                             .foregroundStyle(.secondary)
                     }
                     if let startedAt = job.startedAt {
-                        Text("· \(startedAt, style: .relative) 실행 중")
+                        Text("· \(startedAt, style: .relative) elapsed")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
@@ -186,7 +186,7 @@ struct RunnerCardView: View {
             Spacer()
 
             if let url = job.htmlURL {
-                Link("열기", destination: url)
+                Link("Open", destination: url)
                     .font(.system(size: 12))
             }
         }
