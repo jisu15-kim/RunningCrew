@@ -3,6 +3,14 @@
     <channel>
         <title>RunningCrew</title>
         <item>
+            <title>1.1.1</title>
+            <pubDate>Tue, 11 Aug 2026 17:17:42 +0900</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.5</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/jisu15-kim/RunningCrew/releases/download/v1.1.1/RunningCrew-1.1.1.dmg" length="2616682" type="application/octet-stream" sparkle:edSignature="3wbQSo9G79RbfPaAV7hheJcTh92S6lSsz5frMxoCqNYtbi4Tw8FWWZX8a/6Yg8pbPNyq3PbxLqq41/oWYoWOBg=="/>
+        </item>
+        <item>
             <title>1.1.0</title>
             <pubDate>Tue, 11 Aug 2026 17:09:55 +0900</pubDate>
             <sparkle:version>2</sparkle:version>
